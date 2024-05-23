@@ -30,7 +30,7 @@ def robocorp_challenge() -> None:
     category_button = "//div[@class='SearchResultsModule-filters-content']"
     section_check_input = "//input[@value='00000188-f942-d221-a78c-f9570e360000']"
     sortby_combo_box = "//select[@class='Select-input']"
-    onetrust_div = "//div[@class='onetrust-style']"
+    onetrust_div = "//div[@class='onetrust-pc-dark-filter ot-fade-in']"
 
     browser.wait_until_element_is_visible(search_button)
     time.sleep(5)
