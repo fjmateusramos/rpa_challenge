@@ -26,7 +26,7 @@ def robocorp_challenge() -> None:
         return string.count(seq)
 
     browser = Selenium()
-    browser.open_chrome_browser(config_data['web_site'], headless=False)
+    browser.open_chrome_browser(config_data['web_site'], headless=True)
     search_button = "//button[@class='SearchOverlay-search-button']"
     input_text_field = "//input[@class='SearchOverlay-search-input']"
     category_button = "//div[@class='SearchResultsModule-filters-content']"
@@ -34,7 +34,6 @@ def robocorp_challenge() -> None:
     sortby_combo_box = "//select[@class='Select-input']"
 
     browser.wait_until_element_is_visible(search_button)
-    time.sleep(5)
     try:
         browser.click_element_when_clickable(search_button)
     except Exception as e:
@@ -51,9 +50,9 @@ def robocorp_challenge() -> None:
     browser.input_text(input_text_field, search_item + Keys.ENTER)
 
     browser.wait_until_element_is_visible(category_button)
-    browser.click_element(category_button)
+    browser.click_element_when_clickable(category_button)
     browser.wait_until_element_is_visible(section_check_input)
-    browser.click_element(section_check_input)
+    browser.click_element_when_clickable(section_check_input)
 
     browser.wait_until_element_is_visible(sortby_combo_box)
     browser.set_browser_implicit_wait(10)
@@ -63,8 +62,8 @@ def robocorp_challenge() -> None:
     try:
         reject_cookies = "//a[@title='Close']"
         browser.wait_until_element_is_visible(reject_cookies)
-        browser.click_element(reject_cookies)
-        browser.click_element(search_button)
+        browser.click_element_when_clickable(reject_cookies)
+        browser.click_element_when_clickable(search_button)
     except Exception as e:
         logging.warning(f"Reject cookies popup handling failed: {e}")
 
