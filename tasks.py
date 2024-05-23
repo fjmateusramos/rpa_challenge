@@ -8,6 +8,8 @@ from robocorp.tasks import task, get_output_dir
 from RPA.Excel.Files import Files
 from RPA.Browser.Selenium import Selenium
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from RPA.HTTP import HTTP
 
 # Configuración de logging
@@ -33,14 +35,16 @@ def robocorp_challenge() -> None:
 
     browser.wait_until_element_is_visible(search_button)
     time.sleep(5)
+
+    element.click()
     try:
-        browser.click_element(search_button)
+        browser.click_element_when_clickable(search_button)
     except Exception as e:
         logging.warning(f"Search button click failed: {e}")
         try:
             reject_cookies = "//a[@title='Close']"
             browser.wait_until_element_is_visible(reject_cookies)
-            browser.click_element(reject_cookies)
+            browser.click_element_when_clickable(reject_cookies)
             browser.click_element(search_button)
         except Exception as e:
             logging.warning(f"Reject cookies failed: {e}")
