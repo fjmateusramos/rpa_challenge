@@ -35,8 +35,6 @@ def robocorp_challenge() -> None:
 
     browser.wait_until_element_is_visible(search_button)
     time.sleep(5)
-
-    element.click()
     try:
         browser.click_element_when_clickable(search_button)
     except Exception as e:
