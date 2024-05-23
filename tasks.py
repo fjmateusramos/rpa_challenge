@@ -53,9 +53,6 @@ def robocorp_challenge() -> None:
     browser.click_element_when_clickable(category_button)
     time.sleep(3)
     browser.click_element_when_clickable(section_check_input)
-
-    browser.wait_until_element_is_visible(sortby_combo_box)
-    browser.set_browser_implicit_wait(10)
     browser.select_from_list_by_value(sortby_combo_box, '3')
     browser.set_browser_implicit_wait(10)
 
