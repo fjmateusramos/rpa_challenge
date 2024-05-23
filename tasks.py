@@ -51,12 +51,16 @@ def robocorp_challenge() -> None:
 
     browser.wait_until_element_is_visible(category_button)
     browser.click_element_when_clickable(category_button)
-    browser.click_element(category_button)
     time.sleep(3)
-    browser.click_element_when_clickable(section_check_input)
+    try:
+        browser.wait_until_element_is_visible(category_button)
+        browser.click_element_when_clickable(section_check_input)
+    except Exception as e:
+        logging.warning(f"Stories button check visible failed: {e}")          
+    
     browser.select_from_list_by_value(sortby_combo_box, '3')
     browser.set_browser_implicit_wait(10)
-
+    time.sleep(5)
     try:
         reject_cookies = "//a[@title='Close']"
         browser.wait_until_element_is_visible(reject_cookies)
