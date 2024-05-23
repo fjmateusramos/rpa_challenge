@@ -24,6 +24,7 @@ def robocorp_challenge() -> None:
         return string.count(seq)
 
     browser = Selenium(auto_close=False)
+    browser.open_chrome_browser(config_data['web_site'])
     search_button = "//button[@class='SearchOverlay-search-button']"
     input_text_field = "//input[@class='SearchOverlay-search-input']"
     category_button = "//div[@class='SearchResultsModule-filters-content']"
