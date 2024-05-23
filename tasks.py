@@ -30,7 +30,7 @@ def robocorp_challenge() -> None:
     search_button = "//button[@class='SearchOverlay-search-button']"
     input_text_field = "//input[@class='SearchOverlay-search-input']"
     category_button = "//div[@class='SearchResultsModule-filters-content']"
-    section_check_input = "//input[@value='00000188-f942-d221-a78c-f9570e360000']"
+    section_check_input = "//li[@class='SearchFilter-items-item'][2]"
     sortby_combo_box = "//select[@class='Select-input']"
 
     browser.wait_until_element_is_visible(search_button)
