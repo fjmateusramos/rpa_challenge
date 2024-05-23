@@ -2,6 +2,7 @@ import os
 import re
 import datetime
 import logging
+import time
 from robocorp import storage
 from robocorp.tasks import task, get_output_dir
 from RPA.Excel.Files import Files
@@ -32,7 +33,7 @@ def robocorp_challenge() -> None:
     sortby_combo_box = "//select[@class='Select-input']"
 
     browser.wait_until_element_is_visible(search_button)
-
+    time.sleep(5)
     try:
         browser.click_element(search_button)
     except Exception as e:
