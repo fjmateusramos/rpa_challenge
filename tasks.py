@@ -23,8 +23,8 @@ def robocorp_challenge() -> None:
     def count_sequence(string, seq):
         return string.count(seq)
 
-    browser = Selenium(auto_close=False)
-    browser.open_chrome_browser(config_data['web_site'], headless=True)
+    browser = Selenium()
+    browser.open_chrome_browser(config_data['web_site'], headless=False)
     search_button = "//button[@class='SearchOverlay-search-button']"
     input_text_field = "//input[@class='SearchOverlay-search-input']"
     category_button = "//div[@class='SearchResultsModule-filters-content']"
@@ -38,7 +38,9 @@ def robocorp_challenge() -> None:
     except Exception as e:
         logging.warning(f"Search button click failed: {e}")
         try:
-            browser.delete_all_cookies
+            reject_cookies = "//a[@title='Close']"
+            browser.wait_until_element_is_visible(reject_cookies)
+            browser.click_element(reject_cookies)
             browser.click_element(search_button)
         except Exception as e:
             logging.warning(f"Reject cookies failed: {e}")
