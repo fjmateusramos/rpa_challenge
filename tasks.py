@@ -30,7 +30,6 @@ def robocorp_challenge() -> None:
     category_button = "//div[@class='SearchResultsModule-filters-content']"
     section_check_input = "//input[@value='00000188-f942-d221-a78c-f9570e360000']"
     sortby_combo_box = "//select[@class='Select-input']"
-    onetrust_div = "//div[@class='onetrust-pc-dark-filter ot-fade-in']"
 
     browser.wait_until_element_is_visible(search_button)
     time.sleep(5)
@@ -39,12 +38,7 @@ def robocorp_challenge() -> None:
     except Exception as e:
         logging.warning(f"Search button click failed: {e}")
         try:
-            browser.wait_until_element_is_visible(onetrust_div)
-            browser.click_element(onetrust_div)
             browser.delete_all_cookies
-            reject_cookies = "//a[@title='Close']"
-            browser.wait_until_element_is_visible(reject_cookies)
-            browser.click_element(reject_cookies)
             browser.click_element(search_button)
         except Exception as e:
             logging.warning(f"Reject cookies failed: {e}")
