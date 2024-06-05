@@ -12,10 +12,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from RPA.HTTP import HTTP
 
-# Configuración de logging
+# Configure logging to display time, log level, and message
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def setup_date_variables():
+    """
+    Setup and return date variables to filter results based on dates.
+    Returns a dictionary with today's date, last month, and the month before last.
+    """
     today = datetime.date.today()
     first_of_month = today.replace(day=1)
     return {
@@ -23,20 +27,23 @@ def setup_date_variables():
         'last_month': (first_of_month - datetime.timedelta(days=1)).strftime("%B"),
         'before_last_month': (first_of_month - datetime.timedelta(days=31)).strftime("%B"),
     }
-
-def handle_cookies(browser, xpath_input):
-        """
-        Attempts to close cookie notifications if they are visible on the page.
-        """
-        try:
-            if browser.is_element_visible(xpath_input):
-                browser.click_element_when_clickable(xpath_input)
-                logging.info("Cookie notice dismissed successfully.")
-        except Exception as e:
-            logging.warning(f"Failed to dismiss cookie notice: {e}")
     
+def handle_cookies(browser, xpath_input):
+    """
+    Attempts to close cookie notifications if they are visible on the page.
+    """
+    try:
+        if browser.is_element_visible(xpath_input):
+            browser.click_element_when_clickable(xpath_input)
+            logging.info("Cookie notice dismissed successfully.")
+    except Exception as e:
+            logging.warning(f"Failed to dismiss cookie notice: {e}")
 
 def download_image(browser, result_index, result_locator_xpath, counter):
+    """
+    Attempts to download an image from the specified path and save it locally.
+    Returns the filename if successful, 'No Picture Found' otherwise.
+    """
     try:
         src_path = browser.get_element_attribute(
             result_locator_xpath + f'[{result_index}]//div/div/a/picture/source', 'srcset'
@@ -51,9 +58,16 @@ def download_image(browser, result_index, result_locator_xpath, counter):
         return 'No Picture Found'
 
 def count_sequence(string, seq):
-        return string.count(seq)
+    """
+    Returns the count of subsequences `seq` found in string `string`.
+    """
+    return string.count(seq)
 
 def should_include_result(date_text, range_news_input, date_vars):
+    """
+    Determines if a search result should be included based on its date.
+    Returns True if the result matches the criteria, False otherwise.
+    """
     conditions = {
         0: ['Yesterday', 'ago', date_vars['today']],
         1: ['Yesterday', 'ago', date_vars['today']],
@@ -65,9 +79,11 @@ def should_include_result(date_text, range_news_input, date_vars):
             return True
     return False
 
-
-
 def process_results(browser, search_results, result_locator_xpath, date_vars, config_data, money_pattern):
+    """
+    Processes each search result, extracting and storing details if they meet specified criteria.
+    Returns a dictionary containing details of all processed results.
+    """
     results = {
         'title': [], 'date': [], 'description': [], 'picture': [], 'count_search_phrases': [], 'description_contains_money': []
     }
@@ -92,31 +108,27 @@ def process_results(browser, search_results, result_locator_xpath, date_vars, co
             logging.info(f"Processed result {result_index}/{len(search_results)}")
         except Exception as e:
             logging.error(f"Error processing result {result_index}: {e}")
-
     return results
-
-
 
 @task
 def robocorp_challenge() -> None:
+    """
+    Main task to orchestrate the web scraping challenge.
+    Opens the website, handles cookies, performs search, and processes results.
+    """
     logging.info("Starting robocorp_challenge task.")
     
-    """
-    Setup data in the control room storage and variables
-    """
+    # Set the storage variables and local variables
     config_data_storage = storage.get_json('Config_Data_Challenge')
     search_item_input = config_data_storage['search']
     range_news_input = config_data_storage['range_new']
     web_site_url_input = config_data_storage['web_site']
     date_vars = setup_date_variables()
-    counter = 0
     money_pattern = re.compile(
         r"^\$(\d{1,3}(,\d{3})*\.\d{2}|\d{1,2}\.\d{1})$|^\d{1,3}(,\d{3})*\s+dollars$|^\d{1,3}(,\d{3})*\s+USD$"
     )
 
-    """
-    XPath's needed in the automation
-    """
+    # Set xpath's needed to query the elements
     search_button_xpath = "//button[@class='SearchOverlay-search-button']"
     input_text_field_xpath = "//input[@class='SearchOverlay-search-input']"
     category_button_xpath = "//div[@class='SearchResultsModule-filters-content']"
@@ -125,21 +137,22 @@ def robocorp_challenge() -> None:
     result_locator_xpath = "//div[@class='SearchResultsModule-results']/bsp-list-loadmore/div/div"
     reject_cookies_xpath = "//a[@title='Close']"
     
+    # Perform taks to open the browser
     browser = Selenium()
     browser.open_chrome_browser(web_site_url_input, headless=True)
     handle_cookies(browser, reject_cookies_xpath)  # Handle cookies right after opening the browser
     
-    
+    # Perform tasks to search on the webpage
     browser.wait_until_element_is_visible(search_button_xpath)
     try:
         browser.click_element_when_clickable(search_button_xpath)
     except Exception as e:
         logging.warning(f"Search button click failed: {e}")
         handle_cookies(browser, reject_cookies_xpath)  # Attempt to handle cookies if the first click fails
-
     browser.wait_until_element_is_visible(input_text_field_xpath)
-    browser.input_text(input_text_field_xpath, search_item_input + Keys.ENTER)
+    browser.input_text(input_text_field_xpath, search_item_input + Keys.ENTER)   # Search in the web page
 
+    # Perform tasks to click on the stories category and sort results    
     browser.wait_until_element_is_visible(category_button_xpath)
     browser.click_element_when_clickable(category_button_xpath)
     try:
@@ -152,14 +165,13 @@ def robocorp_challenge() -> None:
     browser.set_browser_implicit_wait(10)    
     handle_cookies(browser, reject_cookies_xpath) # Handle cookies right after search and click in category
 
-    
-    browser.wait_until_element_is_visible(result_locator_xpath)
-    search_results = browser.find_elements(result_locator_xpath)
-    
-    results = process_results(browser, search_results, result_locator_xpath, date_vars, config_data_storage, money_pattern)
+    # Perform tasks to find the results 
+    browser.wait_until_element_is_visible(result_locator_xpath) # Wait for the elements are visible
+    search_results = browser.find_elements(result_locator_xpath) # Get the found elements
+    results = process_results(browser, search_results, result_locator_xpath, date_vars, config_data_storage, money_pattern) # Process the elements
 
+    # Perform tasks to build the excel file
     logging.info("Saving results to Excel.")
-    
     try:
         excel = Files()
         wb = excel.create_workbook()
@@ -170,5 +182,6 @@ def robocorp_challenge() -> None:
     except Exception as e:
         logging.error(f"Error saving results to Excel: {e}")
 
+    # Perform tasks to close the browser
     browser.close_browser()
     logging.info("Browser closed and task completed.")
