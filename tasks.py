@@ -15,171 +15,151 @@ from RPA.HTTP import HTTP
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def setup_date_variables():
+    today = datetime.date.today()
+    first_of_month = today.replace(day=1)
+    return {
+        'today': today.strftime("%B"),
+        'last_month': (first_of_month - datetime.timedelta(days=1)).strftime("%B"),
+        'before_last_month': (first_of_month - datetime.timedelta(days=31)).strftime("%B"),
+    }
+
+def handle_cookies(browser, xpath_input):
+        """
+        Attempts to close cookie notifications if they are visible on the page.
+        """
+        try:
+            if browser.is_element_visible(xpath_input):
+                browser.click_element_when_clickable(xpath_input)
+                logging.info("Cookie notice dismissed successfully.")
+        except Exception as e:
+            logging.warning(f"Failed to dismiss cookie notice: {e}")
+    
+
+def download_image(browser, result_index, result_locator_xpath, counter):
+    try:
+        src_path = browser.get_element_attribute(
+            result_locator_xpath + f'[{result_index}]//div/div/a/picture/source', 'srcset'
+        )
+        src_path1 = src_path.split(" ")[0]
+        image_name = f"{counter}_challenge.png"
+        file_path = os.path.join(get_output_dir(), image_name)
+        HTTP().download(src_path1, file_path, overwrite=True)
+        return image_name
+    except Exception as e:
+        logging.warning(f"Image download failed: {e}")
+        return 'No Picture Found'
+
+def count_sequence(string, seq):
+        return string.count(seq)
+
+def should_include_result(date_text, range_news_input, date_vars):
+    conditions = {
+        0: ['Yesterday', 'ago', date_vars['today']],
+        1: ['Yesterday', 'ago', date_vars['today']],
+        2: ['Yesterday', 'ago', date_vars['today'], date_vars['last_month']],
+        3: ['Yesterday', 'ago', date_vars['today'], date_vars['last_month'], date_vars['before_last_month']]
+    }
+    for condition in conditions[range_news_input]:
+        if count_sequence(date_text, condition) > 0:
+            return True
+    return False
+
+
+
+def process_results(browser, search_results, result_locator_xpath, date_vars, config_data, money_pattern):
+    results = {
+        'title': [], 'date': [], 'description': [], 'picture': [], 'count_search_phrases': [], 'description_contains_money': []
+    }
+    counter = 0
+    for result_index, element in enumerate(search_results, 1):
+        try:
+            title_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/bsp-custom-headline/div/a/span')
+            description_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/div/a/span')
+            date_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/div/div/bsp-timestamp/span/span')
+
+            if should_include_result(date_text, config_data['range_new'], date_vars):
+                counter += 1
+                image_name = download_image(browser, result_index, result_locator_xpath, counter)
+                results['title'].append(title_text)
+                results['description'].append(description_text)
+                results['date'].append(date_text)
+                results['picture'].append(image_name)
+                results['count_search_phrases'].append(count_sequence(title_text, config_data['search']) + count_sequence(description_text, config_data['search']))
+                results['description_contains_money'].append(
+                    bool(re.fullmatch(money_pattern, title_text)) or bool(re.fullmatch(money_pattern, description_text))
+                )
+            logging.info(f"Processed result {result_index}/{len(search_results)}")
+        except Exception as e:
+            logging.error(f"Error processing result {result_index}: {e}")
+
+    return results
+
+
+
 @task
 def robocorp_challenge() -> None:
     logging.info("Starting robocorp_challenge task.")
-    config_data = storage.get_json('Config_Data_Challenge')
-    search_item = config_data['search']
-    range_news = config_data['range_new']
-
-    def count_sequence(string, seq):
-        return string.count(seq)
-
-    browser = Selenium()
-    browser.open_chrome_browser(config_data['web_site'], headless=True)
-    search_button = "//button[@class='SearchOverlay-search-button']"
-    input_text_field = "//input[@class='SearchOverlay-search-input']"
-    category_button = "//div[@class='SearchResultsModule-filters-content']"
-    section_check_input = "//li[@class='SearchFilter-items-item'][2]"
-    sortby_combo_box = "//select[@class='Select-input']"
-
-    browser.wait_until_element_is_visible(search_button)
-    try:
-        browser.click_element_when_clickable(search_button)
-    except Exception as e:
-        logging.warning(f"Search button click failed: {e}")
-        try:
-            reject_cookies = "//a[@title='Close']"
-            browser.wait_until_element_is_visible(reject_cookies)
-            browser.click_element_when_clickable(reject_cookies)
-            browser.click_element(search_button)
-        except Exception as e:
-            logging.warning(f"Reject cookies failed: {e}")
-
-    browser.wait_until_element_is_visible(input_text_field)
-    browser.input_text(input_text_field, search_item + Keys.ENTER)
-
-    browser.wait_until_element_is_visible(category_button)
-    browser.click_element_when_clickable(category_button)
-    time.sleep(3)
-    try:
-        browser.wait_until_element_is_visible(category_button)
-        browser.click_element_when_clickable(section_check_input)
-    except Exception as e:
-        logging.warning(f"Stories button check visible failed: {e}")          
     
-    browser.select_from_list_by_value(sortby_combo_box, '3')
-    browser.set_browser_implicit_wait(10)
-    time.sleep(5)
-    try:
-        reject_cookies = "//a[@title='Close']"
-        browser.wait_until_element_is_visible(reject_cookies)
-        browser.click_element_when_clickable(reject_cookies)
-        browser.click_element_when_clickable(search_button)
-    except Exception as e:
-        logging.warning(f"Reject cookies popup handling failed: {e}")
-
-    result_locator = "//div[@class='SearchResultsModule-results']/bsp-list-loadmore/div/div"
-    browser.wait_until_element_is_visible(result_locator)
-
-    search_results = browser.find_elements(result_locator)
-    results = {
-        'title': [],
-        'date': [],
-        'description': [],
-        'picture': [],
-        'count_search_phrases': [],
-        'description_contains_money': []
-    }
+    """
+    Setup data in the control room storage and variables
+    """
+    config_data_storage = storage.get_json('Config_Data_Challenge')
+    search_item_input = config_data_storage['search']
+    range_news_input = config_data_storage['range_new']
+    web_site_url_input = config_data_storage['web_site']
+    date_vars = setup_date_variables()
     counter = 0
     money_pattern = re.compile(
         r"^\$(\d{1,3}(,\d{3})*\.\d{2}|\d{1,2}\.\d{1})$|^\d{1,3}(,\d{3})*\s+dollars$|^\d{1,3}(,\d{3})*\s+USD$"
     )
 
-    for result_index, element in enumerate(search_results, 1):
-        counter += 1
-        try:
-            title_text = browser.get_text(result_locator + f'[{result_index}]//div/div/bsp-custom-headline/div/a/span')
-            description_text = browser.get_text(result_locator + f'[{result_index}]//div/div/div/a/span')
-            date_text = browser.get_text(result_locator + f'[{result_index}]//div/div/div/div/bsp-timestamp/span/span')
+    """
+    XPath's needed in the automation
+    """
+    search_button_xpath = "//button[@class='SearchOverlay-search-button']"
+    input_text_field_xpath = "//input[@class='SearchOverlay-search-input']"
+    category_button_xpath = "//div[@class='SearchResultsModule-filters-content']"
+    section_check_input_xpath = "//div[@class='CheckboxInput']//span[contains(text(), 'Stories')]"
+    sortby_combo_box_xpath = "//select[@class='Select-input']"
+    result_locator_xpath = "//div[@class='SearchResultsModule-results']/bsp-list-loadmore/div/div"
+    reject_cookies_xpath = "//a[@title='Close']"
+    
+    browser = Selenium()
+    browser.open_chrome_browser(web_site_url_input, headless=True)
+    handle_cookies(browser, reject_cookies_xpath)  # Handle cookies right after opening the browser
+    
+    
+    browser.wait_until_element_is_visible(search_button_xpath)
+    try:
+        browser.click_element_when_clickable(search_button_xpath)
+    except Exception as e:
+        logging.warning(f"Search button click failed: {e}")
+        handle_cookies(browser, reject_cookies_xpath)  # Attempt to handle cookies if the first click fails
 
-            today = datetime.date.today()
-            first = today.replace(day=1)
-            this_month = today.strftime("%B")
-            last_month = (first - datetime.timedelta(days=1)).strftime("%B")
-            before_last_month = (first - datetime.timedelta(days=31)).strftime("%B")
+    browser.wait_until_element_is_visible(input_text_field_xpath)
+    browser.input_text(input_text_field_xpath, search_item_input + Keys.ENTER)
 
-            if (range_news == 0 or range_news == 1) and (
-                date_text == "Yesterday" or count_sequence(date_text, 'ago') > 0 or count_sequence(date_text, this_month) > 0
-            ):
-                results['title'].append(title_text)
-                results['description'].append(description_text)
-                results['date'].append(date_text)
-                results['count_search_phrases'].append(
-                    count_sequence(title_text, config_data['search']) + count_sequence(description_text, config_data['search'])
-                )
-                try:
-                    src_path = browser.get_element_attribute(
-                        result_locator + f'[{result_index}]//div/div/a/picture/source', 'srcset'
-                    )
-                    src_path1 = src_path.split(" ")[0]
-                    image_name = f"{counter}_challenge.png"
-                    file_path = os.path.join(get_output_dir(), image_name)
-                    HTTP().download(src_path1, file_path, overwrite=True)
-                    results['picture'].append(image_name)
-                except Exception as e:
-                    logging.warning(f"Image download failed: {e}")
-                    results['picture'].append('No Picture Found')
-                results['description_contains_money'].append(
-                    bool(re.fullmatch(money_pattern, title_text)) or bool(re.fullmatch(money_pattern, description_text))
-                )
+    browser.wait_until_element_is_visible(category_button_xpath)
+    browser.click_element_when_clickable(category_button_xpath)
+    try:
+        browser.wait_until_element_is_visible(category_button_xpath)
+        browser.click_element_when_clickable(section_check_input_xpath)
+    except Exception as e:
+        logging.warning(f"Stories button check visible failed: {e}")          
+    
+    browser.select_from_list_by_value(sortby_combo_box_xpath, '3')
+    browser.set_browser_implicit_wait(10)    
+    handle_cookies(browser, reject_cookies_xpath) # Handle cookies right after search and click in category
 
-            elif (range_news == 2) and (
-                date_text == "Yesterday" or count_sequence(date_text, 'ago') > 0 or count_sequence(date_text, this_month) > 0 or count_sequence(date_text, last_month) > 0
-            ):
-                results['title'].append(title_text)
-                results['description'].append(description_text)
-                results['date'].append(date_text)
-                results['count_search_phrases'].append(
-                    count_sequence(title_text, config_data['search']) + count_sequence(description_text, config_data['search'])
-                )
-                try:
-                    src_path = browser.get_element_attribute(
-                        result_locator + f'[{result_index}]//div/div/a/picture/source', 'srcset'
-                    )
-                    src_path1 = src_path.split(" ")[0]
-                    image_name = f"{counter}_challenge.png"
-                    file_path = os.path.join(get_output_dir(), image_name)
-                    HTTP().download(src_path1, file_path, overwrite=True)
-                    results['picture'].append(image_name)
-                except Exception as e:
-                    logging.warning(f"Image download failed: {e}")
-                    results['picture'].append('No Picture Found')
-                results['description_contains_money'].append(
-                    bool(re.fullmatch(money_pattern, title_text)) or bool(re.fullmatch(money_pattern, description_text))
-                )
-
-            elif (range_news == 3) and (
-                date_text == "Yesterday" or count_sequence(date_text, 'ago') > 0 or count_sequence(date_text, this_month) > 0 or count_sequence(date_text, last_month) > 0 or count_sequence(date_text, before_last_month) > 0
-            ):
-                results['title'].append(title_text)
-                results['description'].append(description_text)
-                results['date'].append(date_text)
-                results['count_search_phrases'].append(
-                    count_sequence(title_text, config_data['search']) + count_sequence(description_text, config_data['search'])
-                )
-                try:
-                    src_path = browser.get_element_attribute(
-                        result_locator + f'[{result_index}]//div/div/a/picture/source', 'srcset'
-                    )
-                    src_path1 = src_path.split(" ")[0]
-                    image_name = f"{counter}_challenge.png"
-                    file_path = os.path.join(get_output_dir(), image_name)
-                    HTTP().download(src_path1, file_path, overwrite=True)
-                    results['picture'].append(image_name)
-                except Exception as e:
-                    logging.warning(f"Image download failed: {e}")
-                    results['picture'].append('No Picture Found')
-                results['description_contains_money'].append(
-                    bool(re.fullmatch(money_pattern, title_text)) or bool(re.fullmatch(money_pattern, description_text))
-                )
-
-            logging.info(f"Processed result {result_index}/{len(search_results)}")
-
-        except Exception as e:
-            logging.error(f"Error processing result {result_index}: {e}")
+    
+    browser.wait_until_element_is_visible(result_locator_xpath)
+    search_results = browser.find_elements(result_locator_xpath)
+    
+    results = process_results(browser, search_results, result_locator_xpath, date_vars, config_data_storage, money_pattern)
 
     logging.info("Saving results to Excel.")
+    
     try:
         excel = Files()
         wb = excel.create_workbook()
