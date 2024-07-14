@@ -7,6 +7,7 @@ from robocorp import storage
 from robocorp.tasks import task, get_output_dir
 from RPA.Excel.Files import Files
 from RPA.Browser.Selenium import Selenium
+from RPA.Robocloud.Items import Items
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -94,7 +95,7 @@ def process_results(browser, search_results, result_locator_xpath, date_vars, co
             description_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/div/a/span')
             date_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/div/div/bsp-timestamp/span/span')
 
-            if should_include_result(date_text, config_data['range_new'], date_vars):
+            if should_include_result(date_text, config_data['range_news'], date_vars):
                 counter += 1
                 image_name = download_image(browser, result_index, result_locator_xpath, counter)
                 results['title'].append(title_text)
@@ -120,8 +121,12 @@ def robocorp_challenge() -> None:
     
     # Set the storage variables and local variables
     config_data_storage = storage.get_json('Config_Data_Challenge')
+    items = Items()
+    work_item = items.get_input_work_item()  # Fetch the initial work item
+    config_data_storage = work_item.json() 
+    date_vars = setup_date_variables()
     search_item_input = config_data_storage['search']
-    range_news_input = config_data_storage['range_new']
+    range_news_input = config_data_storage['range_news']
     web_site_url_input = config_data_storage['web_site']
     date_vars = setup_date_variables()
     money_pattern = re.compile(
@@ -169,7 +174,8 @@ def robocorp_challenge() -> None:
     browser.wait_until_element_is_visible(result_locator_xpath) # Wait for the elements are visible
     search_results = browser.find_elements(result_locator_xpath) # Get the found elements
     results = process_results(browser, search_results, result_locator_xpath, date_vars, config_data_storage, money_pattern) # Process the elements
-
+    work_item.set_variable("results", results)  # Update work item with processed results
+    items.save_work_item(work_item)
     # Perform tasks to build the excel file
     logging.info("Saving results to Excel.")
     try:
