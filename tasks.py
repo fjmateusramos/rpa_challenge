@@ -91,9 +91,9 @@ def process_results(browser, search_results, result_locator_xpath, date_vars, co
     counter = 0
     for result_index, element in enumerate(search_results, 1):
         try:
-            title_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/bsp-custom-headline/div/a/span')
-            description_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/div/a/span')
-            date_text = browser.get_text(result_locator_xpath + f'[{result_index}]//div/div/div/div/bsp-timestamp/span/span')
+            title_text = browser.get_text(result_locator_xpath + f'[{result_index}'"]//div[@class='PagePromo-title']/a/span")
+            description_text = browser.get_text(result_locator_xpath + f'[{result_index}'"]//div[@class='PagePromo-description']/a/span")
+            date_text = browser.get_text(result_locator_xpath + f'[{result_index}'"]//div[@class='PagePromo-date']//span")
 
             if should_include_result(date_text, config_data['range_news'], date_vars):
                 counter += 1
@@ -134,12 +134,12 @@ def robocorp_challenge() -> None:
     )
 
     # Set xpath's needed to query the elements
-    search_button_xpath = "//button[@class='SearchOverlay-search-button']"
-    input_text_field_xpath = "//input[@class='SearchOverlay-search-input']"
-    category_button_xpath = "//div[@class='SearchResultsModule-filters-content']"
-    section_check_input_xpath = "//div[@class='CheckboxInput']//span[contains(text(), 'Stories')]"
+    search_button_xpath = "//div//bsp-search-overlay"
+    input_text_field_xpath = "//input[@type='text' and @name='q']"
+    category_button_xpath = "//bsp-toggler[@data-toggle-in='search-filter']"
+    section_check_input_xpath = "//input[@value='00000189-9323-dce2-ad8f-bbe74c770000']"
     sortby_combo_box_xpath = "//select[@class='Select-input']"
-    result_locator_xpath = "//div[@class='SearchResultsModule-results']/bsp-list-loadmore/div/div"
+    result_locator_xpath = "//div[@class='SearchResultsModule-results']//div[@class='PageList-items-item']"
     reject_cookies_xpath = "//a[@title='Close']"
     
     # Perform taks to open the browser
