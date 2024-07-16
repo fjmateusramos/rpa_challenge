@@ -123,7 +123,6 @@ def robocorp_challenge() -> None:
     config_data_storage = storage.get_json('Config_Data_Challenge')
     items = Items()
     work_item = items.get_input_work_item()  # Fetch the initial work item
-    config_data_storage = work_item.json() 
     date_vars = setup_date_variables()
     search_item_input = config_data_storage['search']
     range_news_input = config_data_storage['range_news']
