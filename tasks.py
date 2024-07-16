@@ -70,10 +70,10 @@ def should_include_result(date_text, range_news_input, date_vars):
     Returns True if the result matches the criteria, False otherwise.
     """
     conditions = {
-        0: ['Yesterday', 'ago', date_vars['today']],
-        1: ['Yesterday', 'ago', date_vars['today']],
-        2: ['Yesterday', 'ago', date_vars['today'], date_vars['last_month']],
-        3: ['Yesterday', 'ago', date_vars['today'], date_vars['last_month'], date_vars['before_last_month']]
+        0: ['', 'Yesterday', 'ago', date_vars['today']],
+        1: ['', 'Yesterday', 'ago', date_vars['today']],
+        2: ['', 'Yesterday', 'ago', date_vars['today'], date_vars['last_month']],
+        3: ['', 'Yesterday', 'ago', date_vars['today'], date_vars['last_month'], date_vars['before_last_month']]
     }
     for condition in conditions[range_news_input]:
         if count_sequence(date_text, condition) > 0:
