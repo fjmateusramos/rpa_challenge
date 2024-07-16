@@ -80,7 +80,7 @@ def should_include_result(date_text, range_news_input, date_vars):
             return True
     return False
 
-def process_results(browser, search_results, result_locator_xpath, date_vars, config_data, money_pattern):
+def process_results(browser, search_results, result_locator_xpath, date_vars, config_data, money_pattern, range_news_input):
     """
     Processes each search result, extracting and storing details if they meet specified criteria.
     Returns a dictionary containing details of all processed results.
@@ -95,7 +95,7 @@ def process_results(browser, search_results, result_locator_xpath, date_vars, co
             description_text = browser.get_text(result_locator_xpath + f'[{result_index}'"]//div[@class='PagePromo-description']/a/span")
             date_text = browser.get_text(result_locator_xpath + f'[{result_index}'"]//div[@class='PagePromo-date']//span")
 
-            if should_include_result(date_text, config_data['range_news'], date_vars):
+            if should_include_result(date_text, range_news_input, date_vars):
                 counter += 1
                 image_name = download_image(browser, result_index, result_locator_xpath, counter)
                 results['title'].append(title_text)
@@ -122,7 +122,6 @@ def robocorp_challenge() -> None:
     # Set the storage variables and local variables
     config_data_storage = storage.get_json('Config_Data_Challenge')
     items = Items()
-    work_item = items.get_input_work_item()  # Fetch the initial work item
     date_vars = setup_date_variables()
     search_item_input = config_data_storage['search']
     range_news_input = config_data_storage['range_news']
@@ -172,9 +171,7 @@ def robocorp_challenge() -> None:
     # Perform tasks to find the results 
     browser.wait_until_element_is_visible(result_locator_xpath) # Wait for the elements are visible
     search_results = browser.find_elements(result_locator_xpath) # Get the found elements
-    results = process_results(browser, search_results, result_locator_xpath, date_vars, config_data_storage, money_pattern) # Process the elements
-    work_item.set_variable("results", results)  # Update work item with processed results
-    items.save_work_item(work_item)
+    results = process_results(browser, search_results, result_locator_xpath, date_vars, config_data_storage, money_pattern, range_news_input) # Process the elements
     # Perform tasks to build the excel file
     logging.info("Saving results to Excel.")
     try:
