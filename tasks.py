@@ -132,7 +132,7 @@ def robocorp_challenge() -> None:
     )
 
     # Set xpath's needed to query the elements
-    search_button_xpath = "//div//bsp-search-overlay"
+    search_button_xpath = "//span[contains(text(), 'Show Search')]"
     input_text_field_xpath = "//input[@type='text' and @name='q']"
     category_button_xpath = "//bsp-toggler[@data-toggle-in='search-filter']"
     section_check_input_xpath = "//input[@value='00000189-9323-dce2-ad8f-bbe74c770000']"
